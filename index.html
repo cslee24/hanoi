@@ -1,981 +1,648 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Tower of Hanoi - Interactive Canvas Game</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            touch-action: none; /* Prevent scrolling during canvas drag on mobile */
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        canvas {
-            touch-action: none;
-        }
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .gradient-text {
-            background: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(100, 116, 139, 0.5);
-            border-radius: 3px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>하노이탑 이사 대작전 🐰</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pink:#ff7aa2; --pink-soft:#ffe3ec; --lav:#b9a5ff; --lav-soft:#efe9ff;
+    --mint:#8fdcc0; --mint-soft:#dff7ee; --ink:#5a4650; --ink-soft:#8c7682;
+    --card:#ffffffee; --dh:40px; --areaH:220px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:'Gowun Dodum','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    color:var(--ink); min-height:100vh;
+    background:
+      radial-gradient(circle at 20px 20px,#ffffff 2.5px,transparent 3px) 0 0/40px 40px,
+      linear-gradient(160deg,#ffe6f0 0%,#f4ecff 55%,#e6f7ff 100%);
+    background-attachment:fixed;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:22px 16px 48px}
+  .jua{font-family:'Jua',sans-serif}
+
+  /* ---------- 헤더 ---------- */
+  header{text-align:center;position:relative;margin-bottom:18px}
+  .title{font-family:'Jua',sans-serif;font-size:clamp(28px,5.4vw,46px);margin:6px 0 4px;
+    color:#ff6b9a;letter-spacing:1px;
+    text-shadow:3px 3px 0 #fff,5px 5px 0 #ffc9da}
+  .title small{display:block;font-size:.42em;color:var(--lav);text-shadow:2px 2px 0 #fff;letter-spacing:3px;margin-bottom:2px}
+  .subtitle{font-size:clamp(14px,2.4vw,17px);color:var(--ink-soft);margin:6px 0 0}
+  .deco{position:absolute;font-size:26px;animation:float 3.5s ease-in-out infinite;user-select:none}
+  .deco.d1{left:4%;top:8px}.deco.d2{right:6%;top:0;animation-delay:-1.2s}
+  .deco.d3{left:14%;top:70px;font-size:18px;animation-delay:-2s}.deco.d4{right:15%;top:72px;font-size:18px;animation-delay:-.6s}
+  @keyframes float{50%{transform:translateY(-9px) rotate(6deg)}}
+
+  /* ---------- 상단 컨트롤 ---------- */
+  .panel{background:var(--card);border-radius:26px;box-shadow:0 8px 0 #f5d6e2,0 14px 30px rgba(214,140,175,.18);
+    padding:16px 18px;border:3px solid #fff}
+  .controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .label{font-family:'Jua';font-size:16px;color:var(--ink-soft)}
+  .chip{font-family:'Jua';font-size:17px;border:none;cursor:pointer;width:40px;height:40px;border-radius:50%;
+    background:var(--pink-soft);color:var(--pink);box-shadow:0 3px 0 #ffc2d4;transition:.15s}
+  .chip:hover{transform:translateY(-2px)}
+  .chip.on{background:var(--pink);color:#fff;box-shadow:0 3px 0 #e2577f}
+  .stats{display:flex;gap:10px;flex-wrap:wrap}
+  .stat{background:var(--lav-soft);border-radius:18px;padding:6px 14px;text-align:center;min-width:84px}
+  .stat b{display:block;font-family:'Jua';font-size:22px;color:#8a6cf0;line-height:1.1}
+  .stat span{font-size:12px;color:var(--ink-soft)}
+  .stat.goal{background:var(--mint-soft)} .stat.goal b{color:#2fb58a}
+  .stat.time{background:#fff3d9} .stat.time b{color:#f0a020}
+
+  /* ---------- 게임판 ---------- */
+  .board{display:flex;gap:10px;align-items:flex-end;padding:8px 4px 4px;position:relative}
+  .tower{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+    border-radius:22px;padding:10px 4px 8px;transition:background .2s,transform .2s;outline:none;position:relative}
+  .tower.from{background:#fff6f9}
+  .tower.over-ok{background:#e9fff5;box-shadow:inset 0 0 0 3px #9be3c6}
+  .tower.over-bad{background:#fff0f3;box-shadow:inset 0 0 0 3px #ffbfcd}
+  .board{touch-action:none;user-select:none;-webkit-user-select:none}
+  body.grabbing,body.grabbing *{cursor:grabbing!important}
+  .tower.hint-to{background:#ecfff6;animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 6px #b8f0d8}}
+  .area{position:relative;width:100%;height:var(--areaH)}
+  .pole{position:absolute;left:50%;bottom:0;width:14px;height:calc(100% - 26px);transform:translateX(-50%);
+    border-radius:10px 10px 0 0;z-index:0;
+    background:repeating-linear-gradient(-45deg,#ffb3c9 0 8px,#fff 8px 16px);
+    box-shadow:inset -2px 0 0 rgba(0,0,0,.06)}
+  .pole::before{content:'';position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#fff 0 3px,#ff8fb1 4px)}
+  .stack{position:absolute;inset:0;display:flex;flex-direction:column-reverse;align-items:center;z-index:1;padding-bottom:1px}
+  .floor{width:96%;height:16px;border-radius:12px;background:linear-gradient(#a8e8cf,#7fd3b4);box-shadow:0 4px 0 #62bd9c}
+  .home{display:flex;flex-direction:column;align-items:center;margin-top:6px}
+  .home svg{width:clamp(54px,9vw,74px);height:auto;transition:transform .25s}
+  .tower.over-ok .home svg{transform:translateY(-4px) rotate(-5deg)}
+  .tag{font-family:'Jua';font-size:clamp(13px,2.2vw,16px);background:#fff;border-radius:999px;padding:3px 12px;
+    box-shadow:0 2px 0 #f1d6e1;margin-top:2px;white-space:nowrap}
+  .tag em{font-style:normal;font-size:.82em;color:var(--ink-soft)}
+  .tower[data-i="2"] .tag{background:#fff7d6;box-shadow:0 2px 0 #f3dd8f}
+  .bubble{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-family:'Jua';font-size:14px;
+    background:#2fb58a;color:#fff;padding:4px 10px;border-radius:12px;white-space:nowrap;z-index:5;
+    animation:bob .8s ease-in-out infinite}
+  .bubble::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-bottom:0;border-top-color:#2fb58a}
+
+  /* ---------- 원판(과일 젤리) ---------- */
+  .disk{position:relative;height:var(--dh);margin-top:3px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg,var(--c1) 0%,var(--c2) 100%);
+    box-shadow:inset 0 -5px 0 rgba(0,0,0,.07),inset 0 4px 0 rgba(255,255,255,.55),0 3px 0 var(--c3);
+    transition:transform .18s, filter .18s;will-change:transform}
+  .disk::after{content:'';position:absolute;left:14%;top:5px;width:22%;height:5px;border-radius:9px;background:rgba(255,255,255,.7)}
+  .disk.top{cursor:grab}
+  .disk.top:hover{filter:brightness(1.04) drop-shadow(0 4px 4px rgba(160,90,130,.18))}
+  .disk.dragging{transition:none;cursor:grabbing;filter:drop-shadow(0 14px 10px rgba(160,90,130,.3))}
+  .disk.hint{animation:glow 1s ease-in-out infinite}
+    @keyframes glow{50%{box-shadow:0 0 0 5px #fff,0 0 0 9px #8fdcc0}}
+  @keyframes bob{50%{transform:translate(-50%,-4px)}}
+  .shake{animation:shake .45s!important}
+  @keyframes shake{0%,100%{translate:0}20%{translate:-8px}40%{translate:8px}60%{translate:-6px}80%{translate:5px}}
+
+  /* ---------- 버튼 ---------- */
+  .actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px;align-items:center}
+  .btn{font-family:'Jua';font-size:17px;border:none;cursor:pointer;border-radius:999px;padding:10px 18px;color:#fff;
+    transition:transform .12s,box-shadow .12s;display:inline-flex;align-items:center;gap:6px}
+  .btn:active{transform:translateY(3px);box-shadow:none!important}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .b-pink{background:#ff86ab;box-shadow:0 4px 0 #e2628a}
+  .b-lav{background:#a98bff;box-shadow:0 4px 0 #8466e6}
+  .b-mint{background:#4fcc9f;box-shadow:0 4px 0 #34a87f}
+  .b-yel{background:#ffbf3c;box-shadow:0 4px 0 #e09a12}
+  .b-gray{background:#fff;color:var(--ink);box-shadow:0 4px 0 #ead7e0}
+  .speed{display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:6px 14px;box-shadow:0 4px 0 #ead7e0;font-family:'Jua';font-size:14px;color:var(--ink-soft)}
+  input[type=range]{accent-color:#a98bff;width:110px}
+  .keys{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:12px}
+  kbd{font-family:'Jua';background:#fff;border-radius:6px;padding:1px 6px;box-shadow:0 2px 0 #ead7e0}
+
+  /* ---------- 학습 카드 ---------- */
+  .learn{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:22px}
+  .card{background:var(--card);border-radius:24px;padding:18px 20px;border:3px solid #fff;box-shadow:0 6px 0 #ecdff8,0 10px 24px rgba(170,140,220,.15)}
+  .card h3{font-family:'Jua';font-weight:400;font-size:20px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .card h3 .ic{width:34px;height:34px;flex:none}
+  .card ol,.card ul{margin:0;padding-left:20px;line-height:1.85;font-size:15px}
+  .card p{font-size:15px;line-height:1.75;margin:6px 0}
+  .formula{font-family:'Jua';font-size:20px;text-align:center;background:var(--lav-soft);border-radius:16px;padding:8px;margin:8px 0;color:#7a5ce6}
+  table{width:100%;border-collapse:separate;border-spacing:0 5px;font-size:15px}
+  td,th{text-align:center;padding:5px}
+  th{font-family:'Jua';font-weight:400;color:var(--ink-soft)}
+  td{background:#fdf6fa}
+  tr td:first-child{border-radius:12px 0 0 12px} tr td:last-child{border-radius:0 12px 12px 0}
+  tr.cur td{background:#ffe3ec;color:#e2577f;font-weight:700}
+
+  /* ---------- 토스트 / 모달 / 꽃가루 ---------- */
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,140%);background:#fff;border-radius:999px;padding:12px 22px;
+    font-family:'Jua';font-size:17px;box-shadow:0 6px 0 #f1d6e1,0 10px 30px rgba(0,0,0,.12);transition:transform .3s cubic-bezier(.3,1.5,.6,1);
+    z-index:50;max-width:92vw;text-align:center;opacity:0;pointer-events:none}
+  .toast.show{transform:translate(-50%,0);opacity:1}
+  .toast.err{color:#e2577f} .toast.ok{color:#2fb58a}
+  .modal-bg{position:fixed;inset:0;background:rgba(90,60,80,.35);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:30px;padding:26px 26px 22px;text-align:center;max-width:400px;width:100%;
+    box-shadow:0 8px 0 #ffc9da;animation:pop .45s cubic-bezier(.3,1.6,.6,1)}
+  @keyframes pop{from{transform:scale(.6);opacity:0}}
+  .modal h2{font-family:'Jua';font-weight:400;font-size:30px;color:#ff6b9a;margin:6px 0}
+  .stars{font-size:40px;letter-spacing:6px;margin:4px 0}
+  .stars .off{filter:grayscale(1);opacity:.3}
+  .modal p{margin:6px 0;font-size:16px}
+  .modal .row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .party{display:flex;justify-content:center;gap:4px}
+  .party svg{width:60px;animation:jump .6s ease-in-out infinite alternate}
+  .party svg:nth-child(2){animation-delay:.2s}.party svg:nth-child(3){animation-delay:.4s}
+  @keyframes jump{to{transform:translateY(-10px)}}
+  .confetti{position:fixed;top:-50px;z-index:55;pointer-events:none;animation:fall linear forwards}
+  .confetti svg{width:100%;height:100%}
+  @keyframes fall{to{transform:translateY(115vh) rotate(var(--rot))}}
+
+  @media (max-width:600px){
+    .wrap{padding:14px 8px 40px}
+    .panel{padding:12px 8px;border-radius:20px}
+    .board{gap:2px}
+    .chip{width:36px;height:36px;font-size:15px}
+    .stat{min-width:70px;padding:5px 8px}
+    .btn{font-size:15px;padding:9px 14px}
+    .deco{display:none}
+  }
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between p-3 md:p-6 overflow-x-hidden">
+<body>
+<div class="wrap">
+  <header>
+    <span class="deco d1">🍓</span><span class="deco d2">🍑</span>
+    <span class="deco d3">💖</span><span class="deco d4">⭐</span>
+    <h1 class="title"><small>TOWER OF HANOI</small>하노이탑 이사 대작전</h1>
+    <p class="subtitle">원판을 끌어서 <b>토끼네</b>에서 <b>곰돌이네</b>로 모두 옮겨 주세요! 🐰 → 🐻</p>
+  </header>
 
-    <!-- Header -->
-    <header class="w-full max-w-5xl flex flex-col sm:flex-row justify-between items-center gap-4 mb-3">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                <i class="fa-solid font-bold text-white text-xl fa-layer-group"></i>
-            </div>
-            <div>
-                <h1 class="text-2xl font-extrabold tracking-tight gradient-text">TOWER OF HANOI</h1>
-                <p class="text-xs text-slate-400 font-medium">드래그 앤 드롭 퍼즐 게이밍 하노이의 탑</p>
-            </div>
-        </div>
-
-        <!-- Disk Level Selector -->
-        <div class="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
-            <span class="text-xs font-semibold text-slate-400 px-2">원판 수:</span>
-            <div id="disk-buttons" class="flex gap-1">
-                <!-- Buttons injected via JS -->
-            </div>
-        </div>
-    </header>
-
-    <!-- Status Dashboard -->
-    <div class="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-        <div class="glass-panel p-3 rounded-2xl flex flex-col items-center justify-center text-center">
-            <span class="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
-                <i class="fa-solid fa-arrows-rotate text-purple-400"></i> 이동 횟수
-            </span>
-            <div class="text-xl sm:text-2xl font-bold font-mono text-white">
-                <span id="move-count" class="text-purple-400">0</span>
-                <span class="text-xs font-normal text-slate-500">/ <span id="min-moves">7</span> (최적)</span>
-            </div>
-        </div>
-
-        <div class="glass-panel p-3 rounded-2xl flex flex-col items-center justify-center text-center">
-            <span class="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
-                <i class="fa-solid fa-clock text-cyan-400"></i> 경과 시간
-            </span>
-            <div id="timer-display" class="text-xl sm:text-2xl font-bold font-mono text-cyan-400">00:00</div>
-        </div>
-
-        <div class="glass-panel p-3 rounded-2xl flex flex-col items-center justify-center text-center">
-            <span class="text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
-                <i class="fa-solid fa-chart-line text-emerald-400"></i> 이동 효율
-            </span>
-            <div id="efficiency-display" class="text-xl sm:text-2xl font-bold font-mono text-emerald-400">100%</div>
-        </div>
-
-        <div class="glass-panel p-3 rounded-2xl flex items-center justify-around">
-            <button id="sound-btn" title="사운드 토글" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center">
-                <i id="sound-icon" class="fa-solid fa-volume-high text-lg"></i>
-            </button>
-            <button id="undo-btn" title="실행 취소" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed">
-                <i class="fa-solid fa-rotate-left text-lg"></i>
-            </button>
-            <button id="restart-btn" title="재시작" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center">
-                <i class="fa-solid fa-arrow-rotate-right text-lg"></i>
-            </button>
-        </div>
+  <section class="panel">
+    <div class="controls">
+      <div class="group">
+        <span class="label">원판 개수</span>
+        <div class="group" id="chips"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="moves">0</b><span>이동 횟수</span></div>
+        <div class="stat goal"><b id="goal">7</b><span>최소 횟수</span></div>
+        <div class="stat time"><b id="time">00:00</b><span>걸린 시간</span></div>
+      </div>
     </div>
 
-    <!-- Canvas Area -->
-    <main class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center relative my-1">
-        <div id="canvas-container" class="w-full relative rounded-3xl overflow-hidden glass-panel border border-slate-700/60 shadow-2xl shadow-purple-950/30 flex items-center justify-center" style="min-height: 360px; max-height: 520px; aspect-ratio: 16/9;">
-            <canvas id="gameCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
-            
-            <!-- Toast / Hint Overlay -->
-            <div id="hint-overlay" class="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-slate-900/90 border border-slate-700/80 text-xs text-slate-300 pointer-events-none transition-opacity opacity-100 flex items-center gap-2 shadow-xl backdrop-blur-md">
-                <i class="fa-solid fa-hand-pointer text-purple-400"></i>
-                <span>맨 위의 원판을 마우스나 손가락으로 드래그하여 이동하세요.</span>
-            </div>
+    <div class="board" id="board"></div>
 
-            <!-- Auto-Solve Indicator Overlay -->
-            <div id="autosolve-banner" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-2xl bg-purple-950/90 border border-purple-500/50 text-xs font-semibold text-purple-200 pointer-events-none flex items-center gap-3 shadow-2xl backdrop-blur-md animate-pulse">
-                <i class="fa-solid fa-robot text-purple-400 text-base"></i>
-                <span>알고리즘 자동 풀이가 진행 중입니다...</span>
-            </div>
-        </div>
-
-        <!-- Controls & Auto-Solve Panel -->
-        <div class="w-full flex flex-wrap items-center justify-between gap-3 mt-3">
-            <div class="flex items-center gap-2">
-                <button id="auto-solve-btn" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-purple-600/25 transition flex items-center gap-2 active:scale-95">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span>자동 풀이 (Auto Solve)</span>
-                </button>
-                <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-400">
-                    <span>속도:</span>
-                    <input id="solve-speed" type="range" min="1" max="5" value="3" class="w-20 accent-purple-500 cursor-pointer">
-                </div>
-            </div>
-
-            <div class="text-xs text-slate-400 flex items-center gap-4">
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> 기둥 A (출발)</span>
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block"></span> 기둥 B (경유)</span>
-                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> 기둥 C (목적지)</span>
-            </div>
-        </div>
-    </main>
-
-    <!-- Victory Modal -->
-    <div id="win-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none transition-all duration-300">
-        <div class="glass-panel border border-slate-700 bg-slate-900/90 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl transform scale-90 transition-all duration-300" id="win-card">
-            <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-emerald-500/20 animate-bounce">
-                <i class="fa-solid fa-trophy text-slate-950 text-4xl"></i>
-            </div>
-            
-            <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">축하합니다! 스테이지 클리어!</h2>
-            <p id="win-subtitle" class="text-xs text-slate-400 mb-6">모든 원판을 성공적으로 목적지 기둥으로 이동했습니다.</p>
-
-            <div class="grid grid-cols-3 gap-2 bg-slate-950/60 p-3 rounded-2xl border border-slate-800 mb-6 text-center">
-                <div>
-                    <div class="text-xs text-slate-500 mb-0.5">이동 횟수</div>
-                    <div id="modal-moves" class="text-lg font-bold font-mono text-purple-400">0</div>
-                </div>
-                <div>
-                    <div class="text-xs text-slate-500 mb-0.5">최적 횟수</div>
-                    <div id="modal-min-moves" class="text-lg font-bold font-mono text-slate-300">7</div>
-                </div>
-                <div>
-                    <div class="text-xs text-slate-500 mb-0.5">달성 시간</div>
-                    <div id="modal-time" class="text-lg font-bold font-mono text-cyan-400">00:00</div>
-                </div>
-            </div>
-
-            <div class="flex gap-3">
-                <button id="modal-replay-btn" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm transition active:scale-95">
-                    다시 하기
-                </button>
-                <button id="modal-next-btn" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-semibold text-sm shadow-lg shadow-purple-500/25 transition active:scale-95 flex items-center justify-center gap-1.5">
-                    <span>다음 난이도</span>
-                    <i class="fa-solid fa-chevron-right text-xs"></i>
-                </button>
-            </div>
-        </div>
+    <div class="actions">
+      <button class="btn b-gray" id="undoBtn">↩️ 되돌리기</button>
+      <button class="btn b-mint" id="hintBtn">💡 힌트</button>
+      <button class="btn b-lav" id="autoBtn">✨ 자동으로 풀기</button>
+      <div class="speed">🐢<input type="range" id="speed" min="1" max="10" value="5" aria-label="자동 풀이 속도">🐇</div>
+      <button class="btn b-pink" id="resetBtn">🔄 처음부터</button>
+      <button class="btn b-gray" id="soundBtn" title="소리 켜기/끄기">🔊</button>
     </div>
-
-    <script>
-        /**
-         * Tower of Hanoi Web Audio Sound Effects Synthesizer
-         */
-        class AudioEngine {
-            constructor() {
-                this.ctx = null;
-                this.enabled = true;
-            }
-
-            init() {
-                if (!this.ctx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) {
-                        this.ctx = new AudioContext();
-                    }
-                }
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-            }
-
-            playPickup() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(320, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(580, this.ctx.currentTime + 0.08);
-
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.08);
-            }
-
-            playDrop(diskSize = 3) {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-
-                const baseFreq = 400 - (diskSize * 35); // Larger disks = lower pitch
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, this.ctx.currentTime + 0.12);
-
-                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.12);
-            }
-
-            playError() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-                osc.frequency.setValueAtTime(110, this.ctx.currentTime + 0.08);
-
-                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
-
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.18);
-            }
-
-            playWin() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-
-                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99]; // C E G C E G
-                notes.forEach((freq, i) => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.value = freq;
-
-                    const startTime = this.ctx.currentTime + (i * 0.09);
-                    gain.gain.setValueAtTime(0.2, startTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
-
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(startTime);
-                    osc.stop(startTime + 0.3);
-                });
-            }
-        }
-
-        const DISK_COLORS = [
-            { start: '#f43f5e', end: '#fb7185' }, // 1: Coral Rose
-            { start: '#f97316', end: '#fb923c' }, // 2: Warm Amber
-            { start: '#eab308', end: '#fde047' }, // 3: Gold
-            { start: '#10b981', end: '#34d399' }, // 4: Emerald
-            { start: '#06b6d4', end: '#22d3ee' }, // 5: Cyan
-            { start: '#3b82f6', end: '#60a5fa' }, // 6: Royal Blue
-            { start: '#8b5cf6', end: '#a78bfa' }  // 7: Vivid Purple
-        ];
-
-        class Particle {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 12;
-                this.vy = Math.random() * -12 - 4;
-                this.gravity = 0.35;
-                this.size = Math.random() * 8 + 4;
-                this.color = `hsl(${Math.random() * 360}, 85%, 65%)`;
-                this.rotation = Math.random() * Math.PI * 2;
-                this.vRot = (Math.random() - 0.5) * 0.2;
-                this.life = 1.0;
-                this.decay = Math.random() * 0.015 + 0.008;
-            }
-
-            update() {
-                this.vy += this.gravity;
-                this.x += this.vx;
-                this.y += this.vy;
-                this.rotation += this.vRot;
-                this.life -= this.decay;
-            }
-
-            draw(ctx) {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.rotation);
-                ctx.globalAlpha = Math.max(0, this.life);
-                ctx.fillStyle = this.color;
-                ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
-                ctx.restore();
-            }
-        }
-
-        class HanoiGame {
-            constructor() {
-                this.canvas = document.getElementById('gameCanvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.container = document.getElementById('canvas-container');
-
-                this.audio = new AudioEngine();
-
-                // Game Configuration & State
-                this.diskCount = 3;
-                this.pegs = [[], [], []]; // Array of disk size IDs (e.g. [3, 2, 1])
-                this.pegCoords = [];      // Calculated X coordinates for 3 pegs
-
-                // Drag and Animation state management
-                this.isDragging = false;
-                this.dragState = null; // { diskId, sourcePeg, targetPeg, x, y, targetX, targetY, isSnapping }
-
-                // Move History for Undo
-                this.history = [];
-                this.moveCount = 0;
-
-                // Timer State
-                this.timerInterval = null;
-                this.secondsElapsed = 0;
-                this.gameStarted = false;
-                this.isGameWon = false;
-
-                // Auto-Solver State
-                this.isAutoSolving = false;
-                this.solveSteps = [];
-                this.solveTimeout = null;
-
-                // Visual Effects
-                this.particles = [];
-
-                this.initCanvasSize();
-                this.bindEvents();
-                this.renderLevelButtons();
-                this.resetGame();
-                this.startLoop();
-            }
-
-            initCanvasSize() {
-                const rect = this.container.getBoundingClientRect();
-                const dpr = window.devicePixelRatio || 1;
-                
-                this.width = rect.width;
-                this.height = rect.height;
-
-                this.canvas.width = this.width * dpr;
-                this.canvas.height = this.height * dpr;
-                this.ctx.scale(dpr, dpr);
-
-                // Re-calculate Peg positions
-                this.pegCoords = [
-                    this.width * 0.22,
-                    this.width * 0.50,
-                    this.width * 0.78
-                ];
-
-                this.baseY = this.height - 50;
-                this.pegHeight = Math.min(220, this.height * 0.55);
-                this.pegWidth = 14;
-                this.diskHeight = Math.min(26, (this.pegHeight - 20) / 7);
-            }
-
-            renderLevelButtons() {
-                const container = document.getElementById('disk-buttons');
-                container.innerHTML = '';
-                for (let i = 3; i <= 7; i++) {
-                    const btn = document.createElement('button');
-                    btn.className = `w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                        i === this.diskCount
-                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-md scale-105'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                    }`;
-                    btn.innerText = i;
-                    btn.onclick = () => {
-                        if (this.isAutoSolving) this.stopAutoSolve();
-                        this.diskCount = i;
-                        this.renderLevelButtons();
-                        this.resetGame();
-                    };
-                    container.appendChild(btn);
-                }
-            }
-
-            resetGame() {
-                this.stopAutoSolve();
-                this.pegs = [[], [], []];
-                for (let d = this.diskCount; d >= 1; d--) {
-                    this.pegs[0].push(d);
-                }
-
-                this.isDragging = false;
-                this.dragState = null;
-                this.history = [];
-                this.moveCount = 0;
-                this.isGameWon = false;
-                this.particles = [];
-
-                this.resetTimer();
-                this.updateUI();
-                this.hideWinModal();
-
-                document.getElementById('hint-overlay').classList.remove('opacity-0');
-            }
-
-            resetTimer() {
-                clearInterval(this.timerInterval);
-                this.timerInterval = null;
-                this.secondsElapsed = 0;
-                this.gameStarted = false;
-                this.updateTimerDisplay();
-            }
-
-            startTimer() {
-                if (this.gameStarted) return;
-                this.gameStarted = true;
-                this.timerInterval = setInterval(() => {
-                    this.secondsElapsed++;
-                    this.updateTimerDisplay();
-                }, 1000);
-            }
-
-            updateTimerDisplay() {
-                const mins = Math.floor(this.secondsElapsed / 60).toString().padStart(2, '0');
-                const secs = (this.secondsElapsed % 60).toString().padStart(2, '0');
-                document.getElementById('timer-display').innerText = `${mins}:${secs}`;
-            }
-
-            get minMoves() {
-                return Math.pow(2, this.diskCount) - 1;
-            }
-
-            updateUI() {
-                document.getElementById('move-count').innerText = this.moveCount;
-                document.getElementById('min-moves').innerText = this.minMoves;
-                document.getElementById('undo-btn').disabled = this.history.length === 0 || this.isAutoSolving;
-
-                let efficiency = 100;
-                if (this.moveCount > this.minMoves) {
-                    efficiency = Math.max(10, Math.round((this.minMoves / this.moveCount) * 100));
-                }
-                document.getElementById('efficiency-display').innerText = `${efficiency}%`;
-            }
-
-            getDiskWidth(diskId) {
-                const minW = 55;
-                const maxW = Math.min(this.width * 0.22, 190);
-                const step = (maxW - minW) / Math.max(1, this.diskCount - 1);
-                return minW + (diskId - 1) * step;
-            }
-
-            getDiskPosition(pegIdx, stackPos) {
-                const x = this.pegCoords[pegIdx];
-                const y = this.baseY - (stackPos + 1) * this.diskHeight;
-                return { x, y };
-            }
-
-            getPegFromX(x) {
-                const threshold = this.width * 0.15;
-                for (let i = 0; i < 3; i++) {
-                    if (Math.abs(x - this.pegCoords[i]) < threshold) {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-
-            bindEvents() {
-                window.addEventListener('resize', () => this.initCanvasSize());
-
-                // Mouse Event Listeners
-                this.canvas.addEventListener('mousedown', (e) => this.handlePointerDown(e));
-                window.addEventListener('mousemove', (e) => this.handlePointerMove(e));
-                window.addEventListener('mouseup', (e) => this.handlePointerUp(e));
-
-                // Touch Event Listeners
-                this.canvas.addEventListener('touchstart', (e) => {
-                    if (e.touches.length > 0) this.handlePointerDown(e.touches[0]);
-                }, { passive: false });
-
-                window.addEventListener('touchmove', (e) => {
-                    if (this.isDragging && e.touches.length > 0) {
-                        e.preventDefault();
-                        this.handlePointerMove(e.touches[0]);
-                    }
-                }, { passive: false });
-
-                window.addEventListener('touchend', (e) => {
-                    if (this.isDragging) this.handlePointerUp(e);
-                });
-
-                // UI Button Listeners
-                document.getElementById('restart-btn').onclick = () => this.resetGame();
-                document.getElementById('undo-btn').onclick = () => this.undoMove();
-                document.getElementById('auto-solve-btn').onclick = () => this.toggleAutoSolve();
-
-                const soundBtn = document.getElementById('sound-btn');
-                const soundIcon = document.getElementById('sound-icon');
-                soundBtn.onclick = () => {
-                    this.audio.enabled = !this.audio.enabled;
-                    soundIcon.className = this.audio.enabled ? "fa-solid fa-volume-high text-lg" : "fa-solid fa-volume-xmark text-lg text-rose-400";
-                };
-
-                document.getElementById('modal-replay-btn').onclick = () => this.resetGame();
-                document.getElementById('modal-next-btn').onclick = () => {
-                    if (this.diskCount < 7) {
-                        this.diskCount++;
-                        this.renderLevelButtons();
-                    }
-                    this.resetGame();
-                };
-            }
-
-            getCanvasPos(e) {
-                const rect = this.canvas.getBoundingClientRect();
-                return {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                };
-            }
-
-            finishSnapInstantly() {
-                if (!this.dragState) return;
-                const { diskId, targetPeg } = this.dragState;
-                this.pegs[targetPeg].push(diskId);
-                this.dragState = null;
-                this.checkWinCondition();
-            }
-
-            handlePointerDown(e) {
-                if (this.isGameWon || this.isAutoSolving) return;
-
-                // Immediately finish previous snap if user quickly clicks next disk
-                if (this.dragState && this.dragState.isSnapping) {
-                    this.finishSnapInstantly();
-                }
-
-                if (this.dragState) return;
-
-                const pos = this.getCanvasPos(e);
-                const clickedPeg = this.getPegFromX(pos.x);
-
-                if (clickedPeg !== -1 && this.pegs[clickedPeg].length > 0) {
-                    const stack = this.pegs[clickedPeg];
-                    const topDiskId = stack[stack.length - 1];
-                    const topPos = this.getDiskPosition(clickedPeg, stack.length - 1);
-
-                    const diskW = this.getDiskWidth(topDiskId);
-                    const halfW = diskW / 2;
-
-                    if (pos.x >= topPos.x - halfW && pos.x <= topPos.x + halfW &&
-                        pos.y >= topPos.y && pos.y <= topPos.y + this.diskHeight) {
-                        
-                        // Pick up disk from stack
-                        this.pegs[clickedPeg].pop();
-
-                        this.isDragging = true;
-                        this.dragState = {
-                            diskId: topDiskId,
-                            sourcePeg: clickedPeg,
-                            targetPeg: clickedPeg,
-                            x: topPos.x,
-                            y: topPos.y - 10,
-                            targetX: pos.x,
-                            targetY: pos.y - 10,
-                            isSnapping: false
-                        };
-
-                        this.audio.playPickup();
-                        document.getElementById('hint-overlay').classList.add('opacity-0');
-                    }
-                }
-            }
-
-            handlePointerMove(e) {
-                // Ignore mouse moves if not dragging or currently snapping
-                if (!this.dragState || !this.isDragging || this.dragState.isSnapping) return;
-                const pos = this.getCanvasPos(e);
-                this.dragState.targetX = pos.x;
-                this.dragState.targetY = pos.y - 10;
-            }
-
-            handlePointerUp(e) {
-                if (!this.dragState || !this.isDragging) return;
-
-                // Stop dragging flag immediately so cursor movement no longer alters target position
-                this.isDragging = false;
-
-                const dropPeg = this.getPegFromX(this.dragState.x);
-                const sourcePeg = this.dragState.sourcePeg;
-                const diskId = this.dragState.diskId;
-
-                let isValidMove = false;
-                let targetPeg = sourcePeg;
-
-                if (dropPeg !== -1) {
-                    const targetStack = this.pegs[dropPeg];
-                    if (targetStack.length === 0 || targetStack[targetStack.length - 1] > diskId) {
-                        isValidMove = true;
-                        targetPeg = dropPeg;
-                    }
-                }
-
-                if (isValidMove) {
-                    this.startTimer();
-
-                    if (targetPeg !== sourcePeg) {
-                        this.history.push({ from: sourcePeg, to: targetPeg, diskId: diskId });
-                        this.moveCount++;
-                        this.updateUI();
-                        this.audio.playDrop(diskId);
-                    }
-
-                    const targetStackPos = this.pegs[targetPeg].length;
-                    const finalPos = this.getDiskPosition(targetPeg, targetStackPos);
-
-                    this.dragState.isSnapping = true;
-                    this.dragState.targetPeg = targetPeg;
-                    this.dragState.targetX = finalPos.x;
-                    this.dragState.targetY = finalPos.y;
-
-                } else {
-                    // Invalid Move: Return to source peg
-                    this.audio.playError();
-
-                    const targetStackPos = this.pegs[sourcePeg].length;
-                    const finalPos = this.getDiskPosition(sourcePeg, targetStackPos);
-
-                    this.dragState.isSnapping = true;
-                    this.dragState.targetPeg = sourcePeg;
-                    this.dragState.targetX = finalPos.x;
-                    this.dragState.targetY = finalPos.y;
-                }
-            }
-
-            undoMove() {
-                if (this.history.length === 0 || this.isAutoSolving || this.isGameWon || this.isDragging || (this.dragState && this.dragState.isSnapping)) return;
-
-                const lastMove = this.history.pop();
-                const diskId = this.pegs[lastMove.to].pop();
-                this.pegs[lastMove.from].push(diskId);
-                
-                this.moveCount = Math.max(0, this.moveCount - 1);
-                this.audio.playPickup();
-                this.updateUI();
-            }
-
-            checkWinCondition() {
-                if (this.pegs[2].length === this.diskCount) {
-                    this.isGameWon = true;
-                    clearInterval(this.timerInterval);
-                    this.audio.playWin();
-                    this.spawnConfetti();
-                    
-                    setTimeout(() => {
-                        this.showWinModal();
-                    }, 600);
-                }
-            }
-
-            spawnConfetti() {
-                for (let i = 0; i < 90; i++) {
-                    this.particles.push(new Particle(this.width / 2, this.height / 2));
-                }
-            }
-
-            showWinModal() {
-                const modal = document.getElementById('win-modal');
-                const card = document.getElementById('win-card');
-                
-                document.getElementById('modal-moves').innerText = this.moveCount;
-                document.getElementById('modal-min-moves').innerText = this.minMoves;
-                document.getElementById('modal-time').innerText = document.getElementById('timer-display').innerText;
-
-                modal.classList.remove('opacity-0', 'pointer-events-none');
-                card.classList.remove('scale-90');
-                card.classList.add('scale-100');
-            }
-
-            hideWinModal() {
-                const modal = document.getElementById('win-modal');
-                const card = document.getElementById('win-card');
-
-                modal.classList.add('opacity-0', 'pointer-events-none');
-                card.classList.remove('scale-100');
-                card.classList.add('scale-90');
-            }
-
-            toggleAutoSolve() {
-                if (this.isAutoSolving) {
-                    this.stopAutoSolve();
-                } else {
-                    this.startAutoSolve();
-                }
-            }
-
-            startAutoSolve() {
-                this.resetGame();
-                this.isAutoSolving = true;
-                
-                document.getElementById('auto-solve-btn').classList.add('ring-2', 'ring-purple-400', 'from-amber-600', 'to-rose-600');
-                document.getElementById('auto-solve-btn').querySelector('span').innerText = "정지 (Stop)";
-                document.getElementById('autosolve-banner').classList.remove('hidden');
-
-                this.solveSteps = [];
-                this.generateHanoiSteps(this.diskCount, 0, 2, 1);
-
-                this.executeNextSolveStep();
-            }
-
-            stopAutoSolve() {
-                this.isAutoSolving = false;
-                clearTimeout(this.solveTimeout);
-                
-                const btn = document.getElementById('auto-solve-btn');
-                btn.classList.remove('ring-2', 'ring-purple-400', 'from-amber-600', 'to-rose-600');
-                btn.querySelector('span').innerText = "자동 풀이 (Auto Solve)";
-                document.getElementById('autosolve-banner').classList.add('hidden');
-                this.updateUI();
-            }
-
-            generateHanoiSteps(n, source, target, auxiliary) {
-                if (n === 1) {
-                    this.solveSteps.push({ from: source, to: target });
-                    return;
-                }
-                this.generateHanoiSteps(n - 1, source, auxiliary, target);
-                this.solveSteps.push({ from: source, to: target });
-                this.generateHanoiSteps(n - 1, auxiliary, target, source);
-            }
-
-            executeNextSolveStep() {
-                if (!this.isAutoSolving || this.solveSteps.length === 0) {
-                    if (this.solveSteps.length === 0 && this.isAutoSolving) {
-                        this.stopAutoSolve();
-                    }
-                    return;
-                }
-
-                const step = this.solveSteps.shift();
-                const diskId = this.pegs[step.from].pop();
-
-                this.startTimer();
-                this.moveCount++;
-                this.updateUI();
-
-                const startPos = this.getDiskPosition(step.from, this.pegs[step.from].length);
-                const endPos = this.getDiskPosition(step.to, this.pegs[step.to].length);
-
-                this.isDragging = false;
-                this.dragState = {
-                    diskId: diskId,
-                    sourcePeg: step.from,
-                    targetPeg: step.to,
-                    x: startPos.x,
-                    y: startPos.y,
-                    targetX: endPos.x,
-                    targetY: endPos.y,
-                    isSnapping: true
-                };
-
-                this.audio.playDrop(diskId);
-
-                const speedVal = parseInt(document.getElementById('solve-speed').value);
-                const delay = Math.max(80, 500 - (speedVal * 85));
-
-                const checkSolveArrival = setInterval(() => {
-                    if (!this.dragState) {
-                        clearInterval(checkSolveArrival);
-                        if (!this.isGameWon && this.isAutoSolving) {
-                            this.solveTimeout = setTimeout(() => this.executeNextSolveStep(), delay);
-                        } else {
-                            this.stopAutoSolve();
-                        }
-                    }
-                }, 30);
-            }
-
-            startLoop() {
-                const render = () => {
-                    this.updatePhysics();
-                    this.draw();
-                    requestAnimationFrame(render);
-                };
-                requestAnimationFrame(render);
-            }
-
-            updatePhysics() {
-                if (this.dragState) {
-                    if (this.isDragging) {
-                        this.dragState.x += (this.dragState.targetX - this.dragState.x) * 0.4;
-                        this.dragState.y += (this.dragState.targetY - this.dragState.y) * 0.4;
-                    } else if (this.dragState.isSnapping) {
-                        const dx = this.dragState.targetX - this.dragState.x;
-                        const dy = this.dragState.targetY - this.dragState.y;
-                        this.dragState.x += dx * 0.35;
-                        this.dragState.y += dy * 0.35;
-
-                        if (Math.hypot(dx, dy) < 1.0) {
-                            this.finishSnapInstantly();
-                        }
-                    }
-                }
-
-                for (let i = this.particles.length - 1; i >= 0; i--) {
-                    this.particles[i].update();
-                    if (this.particles[i].life <= 0) {
-                        this.particles.splice(i, 1);
-                    }
-                }
-            }
-
-            draw() {
-                this.ctx.save();
-                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.restore();
-
-                // 1. Draw Wooden Base Platform
-                this.drawBase();
-
-                // 2. Draw Metallic Pegs
-                this.drawPegs();
-
-                // 3. Draw Disks inside Peg Stacks
-                this.drawStackedDisks();
-
-                // 4. Draw Active Dragged / Snapping Disk on Top
-                if (this.dragState) {
-                    this.drawDisk(this.dragState.x, this.dragState.y, this.dragState.diskId, true);
-                }
-
-                // 5. Draw Victory Confetti
-                this.particles.forEach(p => p.draw(this.ctx));
-            }
-
-            drawBase() {
-                const ctx = this.ctx;
-                const baseY = this.baseY;
-
-                ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-                ctx.shadowBlur = 20;
-                ctx.shadowOffsetY = 10;
-
-                const baseGrad = ctx.createLinearGradient(0, baseY, 0, baseY + 28);
-                baseGrad.addColorStop(0, '#334155');
-                baseGrad.addColorStop(0.5, '#1e293b');
-                baseGrad.addColorStop(1, '#0f172a');
-
-                ctx.fillStyle = baseGrad;
-                this.fillRoundedRect(ctx, 30, baseY, this.width - 60, 28, 12);
-                ctx.restore();
-
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-                ctx.lineWidth = 1.5;
-                this.strokeRoundedRect(ctx, 30, baseY, this.width - 60, 28, 12);
-            }
-
-            drawPegs() {
-                const ctx = this.ctx;
-                const pegNames = ['Peg A', 'Peg B', 'Peg C'];
-
-                this.pegCoords.forEach((x, idx) => {
-                    const topY = this.baseY - this.pegHeight;
-
-                    const pegGrad = ctx.createLinearGradient(x - this.pegWidth / 2, 0, x + this.pegWidth / 2, 0);
-                    pegGrad.addColorStop(0, '#475569');
-                    pegGrad.addColorStop(0.5, '#94a3b8');
-                    pegGrad.addColorStop(1, '#334155');
-
-                    ctx.fillStyle = pegGrad;
-                    this.fillRoundedRect(ctx, x - this.pegWidth / 2, topY, this.pegWidth, this.pegHeight, 7);
-
-                    ctx.font = '600 12px Inter, sans-serif';
-                    ctx.fillStyle = '#64748b';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(pegNames[idx], x, this.baseY + 46);
-                });
-            }
-
-            drawStackedDisks() {
-                this.pegs.forEach((stack, pegIdx) => {
-                    stack.forEach((diskId, stackPos) => {
-                        const pos = this.getDiskPosition(pegIdx, stackPos);
-                        this.drawDisk(pos.x, pos.y, diskId, false);
-                    });
-                });
-            }
-
-            drawDisk(x, y, diskId, isDragging) {
-                const ctx = this.ctx;
-                const diskW = this.getDiskWidth(diskId);
-                const color = DISK_COLORS[diskId - 1];
-
-                ctx.save();
-
-                if (isDragging) {
-                    ctx.shadowColor = color.start;
-                    ctx.shadowBlur = 18;
-                    ctx.shadowOffsetY = 6;
-                } else {
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                    ctx.shadowBlur = 8;
-                    ctx.shadowOffsetY = 4;
-                }
-
-                const grad = ctx.createLinearGradient(x - diskW / 2, y, x + diskW / 2, y + this.diskHeight);
-                grad.addColorStop(0, color.start);
-                grad.addColorStop(1, color.end);
-
-                ctx.fillStyle = grad;
-                this.fillRoundedRect(ctx, x - diskW / 2, y, diskW, this.diskHeight, 10);
-
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-                ctx.lineWidth = 1;
-                this.strokeRoundedRect(ctx, x - diskW / 2, y, diskW, this.diskHeight, 10);
-
-                ctx.shadowColor = 'transparent';
-                ctx.font = '700 11px Inter, sans-serif';
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(diskId, x, y + this.diskHeight / 2);
-
-                ctx.restore();
-            }
-
-            fillRoundedRect(ctx, x, y, width, height, radius) {
-                ctx.beginPath();
-                ctx.roundRect(x, y, width, height, radius);
-                ctx.fill();
-            }
-
-            strokeRoundedRect(ctx, x, y, width, height, radius) {
-                ctx.beginPath();
-                ctx.roundRect(x, y, width, height, radius);
-                ctx.stroke();
-            }
-        }
-
-        window.onload = () => {
-            window.gameInstance = new HanoiGame();
-        };
-    </script>
+    <p class="keys">맨 위 원판을 <b>마우스로 끌어서</b> 다른 기둥에 놓으세요 (태블릿은 손가락으로) · <kbd>Z</kbd> 되돌리기 · <kbd>H</kbd> 힌트</p>
+  </section>
+
+  <section class="learn">
+    <div class="card">
+      <h3><span class="ic" id="icRule"></span>이사 규칙</h3>
+      <ol>
+        <li>한 번에 <b>원판 하나</b>만 옮길 수 있어요.</li>
+        <li>각 기둥의 <b>맨 위 원판</b>만 움직일 수 있어요.</li>
+        <li><b>작은 원판 위에 큰 원판</b>을 올릴 수 없어요.</li>
+        <li>모든 원판이 곰돌이네로 가면 성공! 🎉</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3><span class="ic" id="icRec"></span>재귀로 생각해 보기</h3>
+      <p>원판 <b id="nTxt">3</b>개를 옮기는 방법:</p>
+      <ol>
+        <li>위의 원판 <b id="nTxt2">2</b>개를 <b>고양이네</b>로 옮긴다</li>
+        <li>가장 큰 원판을 <b>곰돌이네</b>로 옮긴다</li>
+        <li>원판 <b id="nTxt3">2</b>개를 다시 <b>곰돌이네</b>로 옮긴다</li>
+      </ol>
+      <p style="font-size:13.5px;color:var(--ink-soft)">→ 큰 문제를 같은 모양의 작은 문제로 나누는 것이 <b>재귀</b>예요!</p>
+    </div>
+    <div class="card">
+      <h3><span class="ic" id="icTab"></span>최소 이동 횟수</h3>
+      <div class="formula">2<sup>n</sup> − 1 번</div>
+      <table>
+        <thead><tr><th>원판 수(n)</th><th>최소 횟수</th><th>나의 최고 기록</th></tr></thead>
+        <tbody id="tbl"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="party" id="party"></div>
+    <h2 id="mTitle">이사 완료!</h2>
+    <div class="stars" id="mStars"></div>
+    <p id="mMsg"></p>
+    <p id="mSub" style="color:var(--ink-soft);font-size:14px"></p>
+    <div class="row">
+      <button class="btn b-pink" id="againBtn">🔄 다시 하기</button>
+      <button class="btn b-lav" id="nextBtn">⬆️ 한 단계 더!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 그림(SVG) ================= */
+const FACE = (y=23) => `
+  <circle cx="15.3" cy="${y}" r="2" fill="#4a3535"/><circle cx="24.7" cy="${y}" r="2" fill="#4a3535"/>
+  <circle cx="16" cy="${y-.7}" r=".7" fill="#fff"/><circle cx="25.4" cy="${y-.7}" r=".7" fill="#fff"/>
+  <path d="M18 ${y+3.2} q2 2.2 4 0" stroke="#4a3535" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="11.6" cy="${y+3.4}" rx="2.7" ry="1.6" fill="#ff6f93" opacity=".5"/>
+  <ellipse cx="28.4" cy="${y+3.4}" rx="2.7" ry="1.6" fill="#ff6f93" opacity=".5"/>`;
+const SHINE = `<ellipse cx="12.5" cy="16.5" rx="2.6" ry="4.2" fill="#fff" opacity=".5" transform="rotate(28 12.5 16.5)"/>`;
+
+const FRUITS = [
+  { name:'블루베리', c1:'#dfe4ff', c2:'#bcc6f6', c3:'#97a3e6',
+    svg:`<circle cx="20" cy="23" r="14" fill="#6f80e0"/><path d="M15 10.5 l2.5 3 l2.5-3.5 l2.5 3.5 l2.5-3 l-1 5 h-8z" fill="#4b5bbd"/>${SHINE}${FACE()}`},
+  { name:'딸기', c1:'#ffe0e8', c2:'#ffbccc', c3:'#f497ad',
+    svg:`<path d="M20 37.5C9 31.5 5 22.5 7 16.5 9 11.5 15 10.5 20 12.5c5-2 11-1 13 4 2 6-2 15-13 21z" fill="#ff5d7e"/>
+      <g fill="#ffe28a"><ellipse cx="11" cy="20" rx=".8" ry="1.2"/><ellipse cx="29" cy="20" rx=".8" ry="1.2"/><ellipse cx="14" cy="31" rx=".8" ry="1.2"/><ellipse cx="26" cy="31" rx=".8" ry="1.2"/><ellipse cx="20" cy="33.5" rx=".8" ry="1.2"/><ellipse cx="20" cy="17" rx=".8" ry="1.2"/></g>
+      <path d="M11 12.5l4-5 2 3.5 3-6 3 6 2-3.5 4 5c-6 3.5-12 3.5-18 0z" fill="#4fcf6a"/>${SHINE}${FACE(23.5)}`},
+  { name:'오렌지', c1:'#ffeedd', c2:'#ffd2a6', c3:'#f2b07a',
+    svg:`<circle cx="20" cy="23" r="14.5" fill="#ff9e3d"/><rect x="19" y="5.5" width="2.2" height="5" rx="1" fill="#8a5a3c"/>
+      <path d="M21 8.5c4-4 9-3 10-1-2 3-7 4-10 1z" fill="#4fcf6a"/>${SHINE}${FACE()}`},
+  { name:'레몬', c1:'#fff9d6', c2:'#ffef9c', c3:'#ecd463',
+    svg:`<ellipse cx="4.5" cy="23" rx="2.5" ry="2" fill="#f7c928"/><ellipse cx="35.5" cy="23" rx="2.5" ry="2" fill="#f7c928"/>
+      <ellipse cx="20" cy="23" rx="16" ry="12.5" fill="#ffd93b"/><path d="M20 10.5c3-4 8-4 9-2-2 3-6 3-9 2z" fill="#4fcf6a"/>${SHINE}${FACE()}`},
+  { name:'청사과', c1:'#ecfbe2', c2:'#c9efb3', c3:'#a2d98a',
+    svg:`<path d="M20 13c-3-2.5-12-3-13 6-1 8 5 17 9 17 2 0 3-1 4-1s2 1 4 1c4 0 10-9 9-17-1-9-10-8.5-13-6z" fill="#86d665"/>
+      <path d="M20 13.5c0-3 .5-6 2-8" stroke="#8a5a3c" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M22 9c3-3 8-2.5 9 0-3 2.5-6 2.5-9 0z" fill="#3fbf5d"/>${SHINE}${FACE(23.5)}`},
+  { name:'포도', c1:'#f1e8ff', c2:'#dccbfb', c3:'#bea5ef',
+    svg:`<g fill="#a679f0"><circle cx="12" cy="17" r="6"/><circle cx="20" cy="15" r="6"/><circle cx="28" cy="17" r="6"/>
+      <circle cx="9.5" cy="25" r="6"/><circle cx="30.5" cy="25" r="6"/><circle cx="20" cy="24" r="10"/><circle cx="15" cy="32" r="5.5"/><circle cx="25" cy="32" r="5.5"/></g>
+      <path d="M20 9.5V5" stroke="#8a5a3c" stroke-width="2" stroke-linecap="round"/><path d="M20 7c3-3 8-2 9 .5-3 2.5-6 2-9-.5z" fill="#4fcf6a"/>${SHINE}${FACE(24)}`},
+  { name:'복숭아', c1:'#fff0ec', c2:'#ffd5cc', c3:'#f3ada0',
+    svg:`<path d="M20 11c-8-2-15 4-14 13 1 8 7 12 14 12s13-4 14-12c1-9-6-15-14-13z" fill="#ffa39a"/>
+      <path d="M20 11.5c-2 5-2 10 0 14" stroke="#f08178" stroke-width="1.4" fill="none" opacity=".7"/>
+      <path d="M20 11c-3-4-8-4-10-2 2 3 7 4 10 2z" fill="#4fcf6a"/><path d="M20 11c3-4 8-4 10-2-2 3-7 4-10 2z" fill="#3fbf5d"/>
+      <ellipse cx="27" cy="17" rx="5" ry="4" fill="#ffc3b8" opacity=".7"/>${SHINE}${FACE(24)}`},
+];
+const josa = (w, a, b) => { const c = w.charCodeAt(w.length-1) - 0xAC00; return w + (c >= 0 && c % 28 ? a : b); };
+const fruitSVG = i => `<svg class="fruit" viewBox="0 0 40 40" aria-hidden="true">${FRUITS[i].svg}</svg>`;
+
+const ANIMALS = [
+  { name:'토끼네', sub:'출발', svg:`
+    <ellipse cx="28" cy="20" rx="7.5" ry="18" fill="#fff" stroke="#f2c4d3" stroke-width="2"/><ellipse cx="28" cy="21" rx="3.5" ry="12" fill="#ffc7d8"/>
+    <ellipse cx="52" cy="20" rx="7.5" ry="18" fill="#fff" stroke="#f2c4d3" stroke-width="2" transform="rotate(10 52 20)"/><ellipse cx="52" cy="21" rx="3.5" ry="12" fill="#ffc7d8" transform="rotate(10 52 21)"/>
+    <ellipse cx="40" cy="47" rx="26" ry="21" fill="#fff" stroke="#f2c4d3" stroke-width="2"/>`, nose:'#ff8fb1'},
+  { name:'고양이네', sub:'쉬는 곳', svg:`
+    <path d="M15 40L18 12l19 15z" fill="#ffcf96"/><path d="M19 32l1.5-14 10 8z" fill="#ffb3a7"/>
+    <path d="M65 40L62 12 43 27z" fill="#ffcf96"/><path d="M61 32l-1.5-14-10 8z" fill="#ffb3a7"/>
+    <ellipse cx="40" cy="47" rx="27" ry="21" fill="#ffcf96"/>
+    <path d="M36 28v6M40 27v7M44 28v6" stroke="#f0a95a" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M10 50h11M11 55l10-2M70 50H59M69 55l-10-2" stroke="#c98d5a" stroke-width="1.4" stroke-linecap="round"/>`, nose:'#ff8fa0'},
+  { name:'곰돌이네', sub:'도착 🏁', svg:`
+    <circle cx="19" cy="28" r="10" fill="#c99a6e"/><circle cx="19" cy="28" r="5" fill="#f1d3b3"/>
+    <circle cx="61" cy="28" r="10" fill="#c99a6e"/><circle cx="61" cy="28" r="5" fill="#f1d3b3"/>
+    <ellipse cx="40" cy="47" rx="26" ry="21" fill="#c99a6e"/><ellipse cx="40" cy="54" rx="11" ry="8" fill="#f1d3b3"/>`, nose:'#5a3d32'},
+];
+const animalSVG = (i, extra='') => {
+  const a = ANIMALS[i];
+  return `<svg viewBox="0 0 80 70" aria-hidden="true" ${extra}>${a.svg}
+    <circle cx="30" cy="46" r="3" fill="#4a3535"/><circle cx="50" cy="46" r="3" fill="#4a3535"/>
+    <circle cx="31" cy="45" r="1" fill="#fff"/><circle cx="51" cy="45" r="1" fill="#fff"/>
+    <ellipse cx="40" cy="51.5" rx="2.6" ry="2" fill="${a.nose}"/>
+    <path d="M36.5 54.5q1.8 2 3.5 0q1.7 2 3.5 0" stroke="#4a3535" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="22" cy="53" rx="4.5" ry="2.6" fill="#ff7c9e" opacity=".45"/><ellipse cx="58" cy="53" rx="4.5" ry="2.6" fill="#ff7c9e" opacity=".45"/></svg>`;
+};
+
+/* ================= 상태 ================= */
+let n = 3, pegs = [[],[],[]], moves = 0, history = [], drag = null;
+let diskEls = [], stacks = [], towers = [];
+let startTime = null, timerId = null, elapsed = 0;
+let auto = false, usedAuto = false, hints = 0, won = false, busy = false;
+let soundOn = true;
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const delay = () => 1100 - $('speed').value * 100;          // 1000ms ~ 100ms
+const animMs = () => auto ? Math.min(420, delay() * .75) : 300;
+
+/* ================= 소리 ================= */
+let actx;
+function tone(freqs, dur=.09, type='sine', vol=.12){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    let t = actx.currentTime;
+    freqs.forEach(f => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur); t += dur * .8;
+    });
+  }catch(e){}
+}
+const sPick = () => tone([660, 880]);
+const sDrop = () => tone([880, 523], .08);
+const sErr  = () => tone([220, 180], .14, 'triangle', .15);
+const sWin  = () => tone([523, 659, 784, 1047, 1319], .14, 'sine', .14);
+
+/* ================= 화면 만들기 ================= */
+function buildBoard(){
+  const board = $('board'); board.innerHTML = ''; stacks = []; towers = [];
+  for(let i=0;i<3;i++){
+    const t = document.createElement('div');
+    t.className = 'tower'; t.dataset.i = i;
+    t.innerHTML = `<div class="area"><div class="pole"></div><div class="stack"></div></div>
+      <div class="floor"></div>
+      <div class="home">${animalSVG(i)}<div class="tag">${ANIMALS[i].name} <em>${ANIMALS[i].sub}</em></div></div>`;
+    board.appendChild(t); towers.push(t); stacks.push(t.querySelector('.stack'));
+  }
+}
+
+function newGame(count = n){
+  auto = false; setAutoBtn();
+  n = count; moves = 0; history = []; drag = null; won = false; usedAuto = false; hints = 0; busy = false;
+  stopTimer(); elapsed = 0; startTime = null; $('time').textContent = '00:00';
+  const dh = n <= 4 ? 36 : n === 5 ? 34 : n === 6 ? 31 : 28;
+  document.documentElement.style.setProperty('--dh', dh + 'px');
+  document.documentElement.style.setProperty('--areaH', (n * (dh + 3) + 44) + 'px');
+  pegs = [[],[],[]]; diskEls = [];
+  stacks.forEach(s => s.innerHTML = '');
+  for(let size = n - 1; size >= 0; size--){
+    const d = document.createElement('div');
+    const f = FRUITS[size];
+    d.className = 'disk';
+    d.style.width = (n === 1 ? 60 : 30 + size / (n - 1) * 66) + '%';
+    d.style.setProperty('--c1', f.c1); d.style.setProperty('--c2', f.c2); d.style.setProperty('--c3', f.c3);
+    d.dataset.size = size;
+    diskEls[size] = d; pegs[0].push(size); stacks[0].appendChild(d);
+  }
+  clearHint(); updateUI(); renderChips(); renderTable();
+}
+
+function renderChips(){
+  $('chips').innerHTML = '';
+  for(let k=3;k<=7;k++){
+    const b = document.createElement('button');
+    b.className = 'chip' + (k===n ? ' on' : ''); b.textContent = k;
+    b.onclick = () => { if(k!==n || moves>0) newGame(k); };
+    $('chips').appendChild(b);
+  }
+}
+
+function updateUI(){
+  $('moves').textContent = moves;
+  $('goal').textContent = 2 ** n - 1;
+  $('nTxt').textContent = n; $('nTxt2').textContent = n - 1; $('nTxt3').textContent = n - 1;
+  $('undoBtn').disabled = auto || !history.length || won;
+  $('hintBtn').disabled = auto || won;
+  diskEls.forEach(d => d && d.classList.remove('top'));
+  pegs.forEach(p => p.length && diskEls[p[p.length-1]].classList.add('top'));
+}
+
+/* ================= 기록 ================= */
+function getBest(k){ try{ return JSON.parse(localStorage.getItem('hanoi-best-'+k)); }catch(e){ return null; } }
+function saveBest(k, rec){
+  const old = getBest(k);
+  if(!old || rec.moves < old.moves || (rec.moves === old.moves && rec.sec < old.sec)){
+    try{ localStorage.setItem('hanoi-best-'+k, JSON.stringify(rec)); }catch(e){}
+    return true;
+  }
+  return false;
+}
+function renderTable(){
+  let h = '';
+  for(let k=3;k<=7;k++){
+    const b = getBest(k);
+    h += `<tr class="${k===n?'cur':''}"><td>${k}개</td><td>${2**k-1}번</td><td>${b ? `${b.moves}번 · ${fmt(b.sec)}` : '-'}</td></tr>`;
+  }
+  $('tbl').innerHTML = h;
+}
+
+/* ================= 시간 ================= */
+const fmt = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+function startTimer(){
+  if(timerId) return;
+  startTime = Date.now() - elapsed * 1000;
+  timerId = setInterval(() => { elapsed = Math.floor((Date.now()-startTime)/1000); $('time').textContent = fmt(elapsed); }, 250);
+}
+function stopTimer(){ clearInterval(timerId); timerId = null; }
+
+/* ================= 게임 동작 ================= */
+const topOf = i => pegs[i][pegs[i].length - 1];
+const canMove = (a,b) => pegs[a].length > 0 && (pegs[b].length === 0 || topOf(b) > topOf(a));
+
+/* ---------- 드래그로 옮기기 ---------- */
+function towerAt(x, y){
+  const br = $('board').getBoundingClientRect();
+  if(y < br.top - 140 || y > br.bottom + 40) return -1;
+  return towers.findIndex(t => { const r = t.getBoundingClientRect(); return x >= r.left && x <= r.right; });
+}
+function clearOver(){ towers.forEach(t => t.classList.remove('over-ok','over-bad','from')); }
+
+$('board').addEventListener('pointerdown', e => {
+  const el = e.target.closest('.disk');
+  if(!el || auto || won || busy || drag) return;
+  const size = +el.dataset.size;
+  const from = pegs.findIndex(p => p.includes(size));
+  if(topOf(from) !== size){
+    shake(el); toast('맨 위에 있는 원판만 움직일 수 있어요!', 'err'); sErr(); return;
+  }
+  e.preventDefault();
+  clearHint();
+  el.setPointerCapture(e.pointerId);
+  drag = { el, size, from, x0:e.clientX, y0:e.clientY, over:-1, id:e.pointerId };
+  el.classList.add('dragging');
+  stacks[from].style.zIndex = 30;
+  towers[from].classList.add('from');
+  document.body.classList.add('grabbing');
+  sPick();
+});
+
+document.addEventListener('pointermove', e => {
+  if(!drag || e.pointerId !== drag.id) return;
+  drag.el.style.transform = `translate(${e.clientX - drag.x0}px, ${e.clientY - drag.y0}px) rotate(${Math.max(-6, Math.min(6, (e.clientX - drag.x0) / 40))}deg)`;
+  const t = towerAt(e.clientX, e.clientY);
+  if(t !== drag.over){
+    clearOver(); towers[drag.from].classList.add('from');
+    if(t >= 0 && t !== drag.from) towers[t].classList.add(canMove(drag.from, t) ? 'over-ok' : 'over-bad');
+    drag.over = t;
+  }
+});
+
+async function endDrag(e){
+  if(!drag || e.pointerId !== drag.id) return;
+  const d = drag; drag = null;
+  document.body.classList.remove('grabbing');
+  clearOver();
+  const t = towerAt(e.clientX, e.clientY);
+  if(t >= 0 && t !== d.from && canMove(d.from, t)){
+    await doMove(d.from, t, 1);
+  } else {
+    if(t >= 0 && t !== d.from){
+      toast(`앗! 큰 원판은 작은 원판 위에 올릴 수 없어요 🥺`, 'err'); sErr();
+    }
+    const cur = getComputedStyle(d.el).transform;
+    d.el.style.transform = '';
+    busy = true;
+    await d.el.animate([{ transform: cur }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.3,1.4,.6,1)' }).finished.catch(()=>{});
+    busy = false;
+    if(t >= 0 && t !== d.from) shake(d.el);
+  }
+  d.el.classList.remove('dragging');
+  stacks.forEach(s => s.style.zIndex = '');
+}
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
+
+async function doMove(a, b, delta){
+  busy = true;
+  const size = pegs[a].pop(); pegs[b].push(size);
+  const el = diskEls[size];
+  const dropped = el.classList.contains('dragging');
+  const first = el.getBoundingClientRect();
+  el.style.transform = '';
+  el.classList.remove('hint');
+  stacks[b].appendChild(el);
+  const last = el.getBoundingClientRect();
+  const dx = (first.left + first.width/2) - (last.left + last.width/2), dy = first.top - last.top;
+  const lift = Math.min(first.top, last.top) - last.top - 50;
+  if(delta === 1){ moves++; history.push([a,b]); } else { moves--; }
+  startTimer(); updateUI();
+  const anim = dropped
+    ? el.animate([{ transform:`translate(${dx}px,${dy}px)` }, { transform:'translate(0,0)' }],
+                 { duration: 200, easing:'cubic-bezier(.3,1.3,.6,1)' })
+    : el.animate([
+        { transform:`translate(${dx}px,${dy}px)` },
+        { transform:`translate(${dx}px,${lift}px)`, offset:.35 },
+        { transform:`translate(0px,${lift}px)`, offset:.7 },
+        { transform:'translate(0,0)' }
+      ], { duration: animMs(), easing:'ease-in-out' });
+  await anim.finished.catch(()=>{});
+  sDrop(); busy = false;
+  if(pegs[2].length === n) win();
+}
+
+function undo(){
+  if(auto || won || busy || drag || !history.length) return;
+  clearHint();
+  const [a,b] = history.pop();
+  doMove(b, a, -1);
+}
+
+/* 현재 상태에서 곰돌이네까지 가는 최적 이동 목록 (재귀) */
+function solveFrom(){
+  const pos = []; pegs.forEach((p,i) => p.forEach(s => pos[s] = i));
+  const list = [];
+  (function rec(k, target){
+    if(k < 0) return;
+    if(pos[k] === target){ rec(k-1, target); return; }
+    const other = 3 - pos[k] - target;
+    rec(k-1, other); list.push([pos[k], target]); pos[k] = target; rec(k-1, target);
+  })(n-1, 2);
+  return list;
+}
+
+function clearHint(){
+  diskEls.forEach(d => d && d.classList.remove('hint'));
+  towers.forEach(t => { t.classList.remove('hint-to'); t.querySelector('.bubble')?.remove(); });
+}
+function hint(){
+  if(auto || won || busy || drag) return;
+  clearHint();
+  const m = solveFrom()[0]; if(!m) return;
+  hints++;
+  const size = topOf(m[0]);
+  diskEls[size].classList.add('hint');
+  towers[m[1]].classList.add('hint-to');
+  const bub = document.createElement('div'); bub.className = 'bubble'; bub.textContent = '여기로!';
+  towers[m[1]].appendChild(bub);
+  toast(`💡 반짝이는 원판을 ${ANIMALS[m[1]].name}로 옮겨 볼까요?`, 'ok');
+}
+
+async function toggleAuto(){
+  if(auto){ auto = false; setAutoBtn(); updateUI(); return; }
+  if(won) newGame(n);
+  while(busy) await sleep(30);
+  clearHint(); auto = true; usedAuto = true; setAutoBtn(); updateUI();
+  while(auto && !won){
+    const m = solveFrom()[0]; if(!m) break;
+    await doMove(m[0], m[1], 1);
+    if(auto && !won) await sleep(Math.max(0, delay() - animMs()));
+  }
+  auto = false; setAutoBtn(); updateUI();
+}
+function setAutoBtn(){ $('autoBtn').innerHTML = auto ? '⏸ 멈추기' : '✨ 자동으로 풀기'; }
+
+/* ================= 성공! ================= */
+function win(){
+  won = true; auto = false; stopTimer(); setAutoBtn(); updateUI();
+  sWin(); confetti();
+  const min = 2 ** n - 1;
+  let stars = moves === min ? 3 : moves <= min * 1.5 ? 2 : 1;
+  $('party').innerHTML = animalSVG(0) + animalSVG(2) + animalSVG(1);
+  if(usedAuto){
+    $('mTitle').textContent = '자동 풀이 완료!';
+    $('mStars').innerHTML = '✨';
+    $('mMsg').innerHTML = `컴퓨터는 <b>${min}번</b> 만에 옮겼어요.<br>이번엔 직접 도전해 볼까요?`;
+    $('mSub').textContent = '자동 풀이는 기록에 남지 않아요';
+  } else {
+    const isBest = saveBest(n, { moves, sec: elapsed });
+    $('mTitle').textContent = stars === 3 ? '완벽한 이사! 🎉' : '이사 완료! 🎉';
+    $('mStars').innerHTML = [0,1,2].map(i => `<span class="${i < stars ? '' : 'off'}">⭐</span>`).join('');
+    $('mMsg').innerHTML = `<b>${moves}번</b> 이동 · <b>${fmt(elapsed)}</b>` +
+      (stars === 3 ? '<br>최소 횟수로 성공했어요! 천재인가요? 💖' : `<br>최소 횟수는 <b>${min}번</b>이에요. 다시 도전해 볼까요?`);
+    $('mSub').textContent = (isBest ? '🏆 새로운 최고 기록! ' : '') + (hints ? `힌트 ${hints}번 사용` : '');
+  }
+  $('nextBtn').style.display = n < 7 ? '' : 'none';
+  renderTable();
+  setTimeout(() => $('modal').classList.add('show'), 650);
+}
+
+function confetti(){
+  const pool = [...FRUITS.map(f => `<svg viewBox="0 0 40 40">${f.svg}</svg>`),
+    `<svg viewBox="0 0 40 40"><path d="M20 34S5 25 5 15a7.5 7.5 0 0 1 15-2 7.5 7.5 0 0 1 15 2c0 10-15 19-15 19z" fill="#ff86ab"/></svg>`,
+    `<svg viewBox="0 0 40 40"><path d="M20 4l4.7 10 10.8 1.3-8 7.4 2.1 10.7L20 28l-9.6 5.4 2.1-10.7-8-7.4L15.3 14z" fill="#ffd43b"/></svg>`];
+  for(let i=0;i<46;i++){
+    const c = document.createElement('div'); c.className = 'confetti';
+    const s = 20 + Math.random()*24;
+    c.style.cssText = `left:${Math.random()*100}vw;width:${s}px;height:${s}px;animation-duration:${2.4+Math.random()*2.2}s;animation-delay:${Math.random()*.8}s;--rot:${(Math.random()*720-360)|0}deg`;
+    c.innerHTML = pool[(Math.random()*pool.length)|0];
+    document.body.appendChild(c); setTimeout(() => c.remove(), 5600);
+  }
+}
+
+/* ================= 기타 ================= */
+let toastT;
+function toast(msg, kind=''){
+  const t = $('toast'); t.textContent = msg; t.className = 'toast show ' + kind;
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function shake(el){ el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 460); }
+
+$('undoBtn').onclick = undo;
+$('hintBtn').onclick = hint;
+$('autoBtn').onclick = toggleAuto;
+$('resetBtn').onclick = () => newGame(n);
+$('soundBtn').onclick = () => { soundOn = !soundOn; $('soundBtn').textContent = soundOn ? '🔊' : '🔇'; };
+$('againBtn').onclick = () => { $('modal').classList.remove('show'); newGame(n); };
+$('nextBtn').onclick = () => { $('modal').classList.remove('show'); newGame(Math.min(7, n+1)); };
+$('modal').onclick = e => { if(e.target.id === 'modal') $('modal').classList.remove('show'); };
+document.addEventListener('keydown', e => {
+  if($('modal').classList.contains('show')) return;
+  if(e.key.toLowerCase() === 'z') undo();
+  else if(e.key.toLowerCase() === 'h') hint();
+});
+
+/* 카드 아이콘 */
+$('icRule').innerHTML = `<svg viewBox="0 0 40 40" width="34">${FRUITS[1].svg}</svg>`;
+$('icRec').innerHTML  = `<svg viewBox="0 0 40 40" width="34">${FRUITS[5].svg}</svg>`;
+$('icTab').innerHTML  = `<svg viewBox="0 0 40 40" width="34">${FRUITS[3].svg}</svg>`;
+
+buildBoard();
+newGame(3);
+</script>
 </body>
 </html>
